@@ -28,24 +28,22 @@ To debug in IntelliJ Idea, open the 'Maven Projects' tool window (View
 version = "2023.05"
 
 project {
-    val bts = sequential {
-        buildType(Maven("Build","clean compile"))
-        buildType(Maven("Fast Test","clean test","-Dmaven.test.failure.ignore=true -Dtest=*.unit.*Test"))
-        buildType(Maven("Slow Test","clean test","-Dmaven.test.failure.ignore=true -Dtest=*.integration.*Test"))
-        buildType(Maven("Package","clean package","-Dmaven.test.failure.ignore=true"))
-    }.buildSteps()
 
-    bts.forEach{ buildType(it) }
-    bts.last().triggers {
-        vcs {
+    buildType(Build)
+    buildType(FastTest)
+    buildType(SlowTest)
+    buildType(Package)
 
-        }
+    sequential {
+        buildType(Build)
+        buildType(FastTest)
+        buildType(SlowTest)
+        buildType(Package)
     }
 }
 
-class Maven(name: String, goals: Strings, runnerArgs: String? = null) : BuildType ({
-    id(name.toExtId())
-    this.name = name
+object Build : BuildType({
+    name = "Build"
 
     vcs {
         root(DslContext.settingsRoot)
@@ -53,8 +51,58 @@ class Maven(name: String, goals: Strings, runnerArgs: String? = null) : BuildTyp
 
     steps {
         maven {
-            this.goals = goals
-            this.runnerArgs = runnerArgs
+            goals = "clean compile"
+            runnerArgs = "-Dmaven.test.failure.ignore=true"
         }
-    }    
+    }
+})
+
+object FastTest : BuildType({
+    name = "Fast Test"
+
+    vcs {
+        root(DslContext.settingsRoot)
+    }
+
+    steps {
+        maven {
+            goals = "clean test"
+            runnerArgs = "-Dmaven.test.failure.ignore=true -Dtest=*.unit.*Test"
+        }
+    }
+})
+
+object SlowTest : BuildType({
+    name = "Slow Test"
+
+    vcs {
+        root(DslContext.settingsRoot)
+    }
+
+    steps {
+        maven {
+            goals = "clean test"
+            runnerArgs = "-Dmaven.test.failure.ignore=true -Dtest=*.integration.*Test"
+        }
+    }
+})
+
+object Package : BuildType({
+    name = "Package"
+
+    vcs {
+        root(DslContext.settingsRoot)
+    }
+
+    steps {
+        maven {
+            goals = "clean package"
+            runnerArgs = "-Dmaven.test.failure.ignore=true"
+        }
+    }
+
+    triggers {
+        vcs {
+        }
+    }
 })
